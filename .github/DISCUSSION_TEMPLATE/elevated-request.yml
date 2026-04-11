@@ -1,0 +1,57 @@
+title: "[ELEVATED] "
+labels: ["elevated-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Elevated Permission Request
+        This form is only for plugins that are **already Verified**.
+        Elevated permissions are granted exclusively by the D.V.V. on a case-by-case basis.
+
+  - type: input
+    id: plugin_name
+    attributes:
+      label: Plugin Name
+    validations:
+      required: true
+
+  - type: input
+    id: current_version
+    attributes:
+      label: Current Version
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Author (GitHub username)
+    validations:
+      required: true
+
+  - type: textarea
+    id: permissions_requested
+    attributes:
+      label: Permissions Requested
+      description: "Use exact permission IDs from POLICY.md (e.g. fs.read.external, net.background)"
+      placeholder: |
+        - fs.read.external
+        - net.background
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Justification
+      description: "For each permission, explain why it is necessary and how it will be used responsibly."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      placeholder: "What alternatives did you consider before requesting this permission?"
+    validations:
+      required: true

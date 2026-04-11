@@ -1,0 +1,53 @@
+title: "[REPORT] "
+labels: ["report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Report a Plugin
+        Use this form to report a plugin that violates the plugin policy or contains malicious code.
+        Reports are reviewed by the D.V.V. All confirmed violations result in enforcement action.
+
+  - type: input
+    id: plugin_name
+    attributes:
+      label: Plugin Name
+    validations:
+      required: true
+
+  - type: input
+    id: plugin_source
+    attributes:
+      label: Source (where did you get it?)
+      placeholder: "Link to the plugin file or repository"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: violation_type
+    attributes:
+      label: Type of Violation
+      options:
+        - "Malicious code (malware, keylogger, data exfiltration, etc.)"
+        - "Policy violation (forbidden file types, undisclosed network, etc.)"
+        - "Impersonation (fake Verified/Elevated/V0RTEX-Made status)"
+        - "License violation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: "Describe the suspicious or violating behavior in as much detail as possible."
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      placeholder: "Links, screenshots, code snippets, or attach the plugin file"
+    validations:
+      required: true

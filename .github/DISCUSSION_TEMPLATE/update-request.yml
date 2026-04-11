@@ -1,0 +1,128 @@
+title: "[UPDATE] "
+labels: ["update-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Plugin Update Request
+        Read [UPDATING.md](../UPDATING.md) before filling this form.
+        Only the original author may submit updates.
+
+  - type: input
+    id: plugin_name
+    attributes:
+      label: Plugin Name
+    validations:
+      required: true
+
+  - type: input
+    id: current_version
+    attributes:
+      label: Current Live Version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: new_version
+    attributes:
+      label: New Version
+      placeholder: "1.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Author (GitHub username)
+    validations:
+      required: true
+
+  - type: input
+    id: repo_url
+    attributes:
+      label: Plugin Repository URL (must point to updated code)
+    validations:
+      required: true
+
+  - type: textarea
+    id: changelog
+    attributes:
+      label: Changelog
+      description: "List every change since the last version. Be specific. The D.V.V. will verify this against the actual code diff."
+      placeholder: |
+        - Added: new IOC export format
+        - Fixed: crash when scan history is empty
+        - Removed: legacy API fallback
+        - Changed: output folder structure
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason for Update
+      placeholder: "Bug fix / new feature / compatibility update / security fix"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: permission_changes
+    attributes:
+      label: Elevated Permission Changes
+      options:
+        - "No changes"
+        - "Yes — permissions changed (describe below)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: permission_detail
+    attributes:
+      label: Permission Change Details (if any)
+      placeholder: "What changed and why"
+
+  - type: dropdown
+    id: dependency_changes
+    attributes:
+      label: Dependency Changes
+      options:
+        - "No changes"
+        - "Yes — dependencies changed (describe below)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependency_detail
+    attributes:
+      label: Dependency Change Details (if any)
+      placeholder: "What was added / removed / updated"
+
+  - type: dropdown
+    id: breaking_changes
+    attributes:
+      label: Breaking Changes
+      options:
+        - "No"
+        - "Yes (describe below)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: breaking_detail
+    attributes:
+      label: Breaking Change Details (if any)
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: New version number is higher than current live version
+          required: true
+        - label: Changelog accurately reflects all code changes
+          required: true
+        - label: I am the original author of this plugin
+          required: true
+        - label: Plugin still complies with all rules in POLICY.md
+          required: true

@@ -1,0 +1,129 @@
+title: "[VERIFY] "
+labels: ["verification-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Plugin Verification Request
+        Read [SUBMITTING.md](../SUBMITTING.md) before filling this form.
+        Incomplete submissions will be closed without review.
+
+  - type: input
+    id: plugin_name
+    attributes:
+      label: Plugin Name
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Author (GitHub username)
+    validations:
+      required: true
+
+  - type: input
+    id: repo_url
+    attributes:
+      label: Plugin Repository URL
+      placeholder: "https://github.com/YourUsername/your-plugin"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: "What does your plugin do?"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: target_os
+    attributes:
+      label: Target OS
+      options:
+        - label: Windows
+        - label: macOS
+        - label: Linux
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      placeholder: "requests, beautifulsoup4 — or 'none'"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: background_network
+    attributes:
+      label: Background Network Activity
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+
+  - type: input
+    id: background_endpoints
+    attributes:
+      label: Background Endpoints (if yes)
+      placeholder: "api.example.com, other.example.com — or 'none'"
+
+  - type: dropdown
+    id: on_unload
+    attributes:
+      label: on_unload() implemented?
+      options:
+        - "Yes"
+        - "No"
+        - "Not needed (no threads or open files)"
+    validations:
+      required: true
+
+  - type: input
+    id: python_versions
+    attributes:
+      label: Tested on Python version(s)
+      placeholder: "3.10, 3.12"
+    validations:
+      required: true
+
+  - type: input
+    id: min_v0rtex
+    attributes:
+      label: Min V0RTEX Version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes for the reviewer
+      placeholder: "Anything the D.V.V. should know"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: Header is complete and Class is set to `Unverified`
+          required: true
+        - label: Plugin has its own public GitHub repository with a README
+          required: true
+        - label: All dependencies are declared in the header
+          required: true
+        - label: Plugin does not violate any rule in POLICY.md
+          required: true
+        - label: I am the sole author of this plugin
+          required: true
