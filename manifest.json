@@ -1,0 +1,10 @@
+{
+  "_info": {
+    "description": "V0RTEX Plugin Hub — machine-readable plugin index",
+    "repository": "https://github.com/Vider06/V0rtex-Plugin-Official",
+    "maintainer": "Vider_06",
+    "last_updated": "2026-04-11",
+    "format_version": "1.0"
+  },
+  "plugins": []
+}
