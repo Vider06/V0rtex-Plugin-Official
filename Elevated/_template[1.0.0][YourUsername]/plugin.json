@@ -1,0 +1,31 @@
+{
+  "name": "Plugin Name",
+  "id": "plugin_name",
+  "folder": "PluginName[1.0.0][YourUsername]",
+  "current_version": "1.0.0",
+  "author": "YourUsername",
+  "author_url": "https://github.com/YourUsername",
+  "repository": "https://github.com/YourUsername/your-plugin-repo",
+  "description": "One-line description of what this plugin does",
+  "class": "Elevated",
+  "elevated_permissions": [
+    "permission.id"
+  ],
+  "background_network": false,
+  "background_endpoints": [],
+  "dependencies": [],
+  "min_v0rtex_version": "1.0.0",
+  "target_os": ["windows"],
+  "verified_date": "YYYY-MM-DD",
+  "elevated_date": "YYYY-MM-DD",
+  "last_updated": "YYYY-MM-DD",
+  "sha256": "",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "YYYY-MM-DD",
+      "sha256": "",
+      "archived_as": null
+    }
+  ]
+}
