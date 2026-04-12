@@ -3,5 +3,11 @@
     "last_updated": "2026-04-12",
     "version": "1.0"
   },
-  "accounts": []
+  "accounts": [
+    {
+      "vh": "532a205706efb1391cdb4d89c60176d6a48dec1750c19fb0dd1804a0a788b5d6",
+      "status": "active",
+      "role": "moderator"
+    }
+  ]
 }
