@@ -9,6 +9,13 @@
       "vh": "5fbad36419a56274f32b206d0a590671900563e951a7d7e8dfdb4367edecd9df",
       "status": "active",
       "role": "founder"
+    },
+    {
+      "vh": "757f536076dc11a8ca35203f88108a2c02556b00c67f59d2db00719eab303d42",
+      "status": "pending",
+      "rank": "Chief",
+      "tool_access": "both",
+      "reauth_hashes": []
     }
   ]
 }
