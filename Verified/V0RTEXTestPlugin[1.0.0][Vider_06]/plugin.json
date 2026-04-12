@@ -1,0 +1,37 @@
+{
+  "name": "V0RTEX Test Plugin",
+  "id": "v0rtex_test_plugin",
+  "folder": "V0RTEXTestPlugin[1.0.0][Vider_06]",
+  "current_version": "1.0.0",
+  "author": "Vider_06",
+  "author_url": "https://github.com/Vider_06",
+  "repository": "",
+  "description": "Developer test plugin \u2014 exercises every lifecycle hook and Verified API call",
+  "class": "Verified",
+  "elevated_permissions": [],
+  "background_network": false,
+  "background_endpoints": [],
+  "dependencies": [],
+  "min_v0rtex_version": "1.0.1",
+  "target_os": [
+    "windows"
+  ],
+  "verified_date": "2026-04-13",
+  "last_updated": "2026-04-13",
+  "hash_full": "6cafe9c4da858fb5a75169cb4511d7052edb725ddde2797b97ce571b13099dcc",
+  "hash_structural": "d8deeb017e919507533fda49e68f9e30775da596c60a98602180fcae105ac2bd",
+  "hash_ast": "26edeb61e527db9e45822dde8306e9c871679d77849097e2657c1dad8d9ac56c",
+  "ast_token_count": 1527,
+  "violation": null,
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-04-13",
+      "hash_full": "6cafe9c4da858fb5a75169cb4511d7052edb725ddde2797b97ce571b13099dcc",
+      "hash_structural": "d8deeb017e919507533fda49e68f9e30775da596c60a98602180fcae105ac2bd",
+      "hash_ast": "26edeb61e527db9e45822dde8306e9c871679d77849097e2657c1dad8d9ac56c",
+      "ast_token_count": 1527,
+      "archived_as": null
+    }
+  ]
+}
