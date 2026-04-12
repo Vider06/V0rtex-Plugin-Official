@@ -107,3 +107,35 @@ The **V0RTEX Plugin Manager** (`plugin_manager.py`) is a standalone tool that le
 ---
 
 *V0RTEX Plugin Hub — © 2024–2026 Vider_06. All rights reserved.*
+
+---
+
+## plugin.json — Field Reference (D.V.V. / S.E.A.)
+
+This section documents the fields in each plugin's `plugin.json` that are relevant to V0RTEX at runtime. All fields are written and maintained by the S.E.A. — plugin authors do not set these manually.
+
+| Field | Type | Description |
+|---|---|---|
+| `hash_full` | string | SHA-256 of the exact plugin `.py` file as verified by S.E.A. |
+| `hash_structural` | string | SHA-256 of the file with all `#` comments and docstrings removed |
+| `hash_ast` | string | SHA-256 of the normalized AST (variable/function names stripped) |
+| `ast_token_count` | integer | AST node count used for similarity scoring |
+| `violation` | object or null | Active S.E.A. enforcement record (Level 1 or 2). `null` if no active violation. |
+
+### violation object format
+
+```json
+"violation": {
+  "level": 1,
+  "reason": "Short description of the violation",
+  "fix_deadline": "YYYY-MM-DD"
+}
+```
+
+- `level` — `1` (Warning, plugin remains loadable) or `2` (Suspension, plugin blocked)
+- `reason` — human-readable reason shown to the user in V0RTEX
+- `fix_deadline` — ISO date by which the developer must fix the issue. Empty string if not applicable.
+
+Level 3 and 4 violations are not stored here — they result in the plugin being added to the private Banned list (`V0rtex-Banned-Plugins`) and removed from this repository entirely.
+
+When `violation` is `null`, V0RTEX treats the plugin as clean. When it contains a Level 1 object, V0RTEX shows a 🟡 badge in CFG → PLUGINS. Level 2 shows 🟠 and the plugin cannot be enabled.
