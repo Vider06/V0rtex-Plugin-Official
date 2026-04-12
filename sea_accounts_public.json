@@ -1,18 +1,14 @@
 {
   "_info": {
     "last_updated": "2026-04-12",
-    "version": "1.0"
+    "version": "1.1",
+    "note": "SEA account registry. Contains only opaque hashes \u2014 no sensitive data."
   },
   "accounts": [
     {
-      "vh": "532a205706efb1391cdb4d89c60176d6a48dec1750c19fb0dd1804a0a788b5d6",
+      "vh": "5fbad36419a56274f32b206d0a590671900563e951a7d7e8dfdb4367edecd9df",
       "status": "active",
-      "role": "moderator"
-    },
-    {
-      "vh": "3755a35e3478d0f23bdf9f8d6483459ce528ff52abf677d52495fc472f263607",
-      "status": "active",
-      "role": "moderator"
+      "role": "founder"
     }
   ]
 }
