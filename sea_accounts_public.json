@@ -1,0 +1,8 @@
+{
+  "_info": {
+    "last_updated": "2026-04-12",
+    "version": "1.0",
+    "note": "SEA account registry. Contains only opaque hashes — no usernames, passwords or IDs."
+  },
+  "accounts": []
+}
