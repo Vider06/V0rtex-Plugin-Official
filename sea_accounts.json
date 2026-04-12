@@ -1,0 +1,22 @@
+{
+  "_info": {
+    "last_updated": "2026-04-12",
+    "version": "1.0"
+  },
+  "accounts": [
+    {
+      "account_id": "SEA-0134873A367E",
+      "username": "Testing",
+      "password_hash": "cd05289f10c65956d66ec8116414551088680f96b1e276d5427239912d970e7a",
+      "pw_salt": "3496b38900a0f585a5dd61a2b0cea6d5f3fea4efd1bd17b5f165e25abc5762a8",
+      "verif_hash": "699d840001ec47d7de63bfa3782decb74e66647b73f1368c91913c6fbf37d755",
+      "role": "moderator",
+      "status": "pending",
+      "created_date": "2026-04-12",
+      "activated_date": null,
+      "last_login": null,
+      "login_count": 0,
+      "notes": ""
+    }
+  ]
+}
