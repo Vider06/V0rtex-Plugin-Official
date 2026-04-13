@@ -45,8 +45,14 @@ def on_load():
 
 
 def run():
+    print("[TestPlugin] run() called")
     _log("run() called — building UI")
-    _build_window()
+    try:
+        _build_window()
+    except Exception as _e:
+        import traceback as _tb
+        print(f"[TestPlugin] _build_window() FAILED: {_e}")
+        _tb.print_exc()
 
 
 def on_unload():
@@ -106,6 +112,8 @@ def _build_window():
     _win.resizable(True, True)
     _win.geometry("1020x680")
     _win.minsize(820, 520)
+    _win.lift()
+    _win.focus_force()
 
     def _mkbtn(parent, label, cmd, color):
         b = tk.Button(

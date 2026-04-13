@@ -10,18 +10,17 @@
   "class": "Elevated",
   "elevated_permissions": [
     "fs.read.external",
-    "fs.write.zip",
-    "fs.write.json",
-    "fs.write.xml",
-    "fs.write.csv",
-    "fs.write.html",
-    "fs.write.pdf",
     "fs.read.v0rtex.logs",
     "fs.read.v0rtex.reports",
+    "fs.write.csv",
+    "fs.write.html",
+    "fs.write.json",
+    "fs.write.pdf",
+    "fs.write.xml",
+    "fs.write.zip",
     "net.background",
     "net.listen",
     "proc.read",
-    "sys.read.registry",
     "sys.read.env"
   ],
   "background_network": false,
@@ -32,22 +31,22 @@
     "windows"
   ],
   "verified_date": "2026-04-13",
+  "elevated_date": "2026-04-13",
   "last_updated": "2026-04-13",
-  "hash_full": "1d9aecbd8827a0319612c52639435ca139a9dd7aa254869e2f210f0cf2502086",
-  "hash_structural": "15e227cecd0e64037f2740c1cf74c3ad88a8a3f45caa9a1a3930636ae8d30856",
-  "hash_ast": "503114bcf04d18d5da96d3c8ba6fc31c778a9c455bbc893a4a5564fefd3c2851",
-  "ast_token_count": 3992,
+  "hash_full": "329fc4ccc0820be9a2cd5df6d392fb0e14340a7d94205faf434dad0da73cb78a",
+  "hash_structural": "d3a272123606ceb8ae2bf2e963cf2c426b616eb8da637b2338f766c937fc017e",
+  "hash_ast": "894f8237c6529f33f07f50c8939acc12804bde56e24b2a479fd0c630e229575c",
+  "ast_token_count": 4030,
   "violation": null,
   "versions": [
     {
       "version": "2.0.0",
       "date": "2026-04-13",
-      "hash_full": "1d9aecbd8827a0319612c52639435ca139a9dd7aa254869e2f210f0cf2502086",
-      "hash_structural": "15e227cecd0e64037f2740c1cf74c3ad88a8a3f45caa9a1a3930636ae8d30856",
-      "hash_ast": "503114bcf04d18d5da96d3c8ba6fc31c778a9c455bbc893a4a5564fefd3c2851",
-      "ast_token_count": 3992,
+      "hash_full": "329fc4ccc0820be9a2cd5df6d392fb0e14340a7d94205faf434dad0da73cb78a",
+      "hash_structural": "d3a272123606ceb8ae2bf2e963cf2c426b616eb8da637b2338f766c937fc017e",
+      "hash_ast": "894f8237c6529f33f07f50c8939acc12804bde56e24b2a479fd0c630e229575c",
+      "ast_token_count": 4030,
       "archived_as": null
     }
-  ],
-  "elevated_date": "2026-04-13"
+  ]
 }

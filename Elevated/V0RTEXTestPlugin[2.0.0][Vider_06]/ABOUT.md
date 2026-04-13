@@ -14,6 +14,28 @@
 
 *(Add description here)*
 
+## Elevated Permissions
+
+List all granted elevated permissions and explain exactly how each one is used.
+
+| Permission | Usage |
+|---|---|
+| `fs.read.external` |  |
+| `fs.read.v0rtex.logs` |  |
+| `fs.read.v0rtex.reports` |  |
+| `fs.write.csv` |  |
+| `fs.write.html` |  |
+| `fs.write.json` |  |
+| `fs.write.pdf` |  |
+| `fs.write.xml` |  |
+| `fs.write.zip` |  |
+| `net.background` |  |
+| `net.listen` |  |
+| `proc.read` |  |
+| `sys.read.env` |  |
+
+> V0RTEX will display this list to the user before loading the plugin. The user must confirm.
+
 ## Dependencies
 
 none
@@ -24,7 +46,12 @@ Install via the Plugin Manager, or copy `vx_test_plugin.py` to:
 ```
 V0rtex_System\V0RTEX_v<version>\plugins\
 ```
+V0RTEX will show the full permission list on first load and ask for confirmation before the plugin runs.
 
 ## Usage
 
 *(Add usage instructions here)*
+
+## Notes
+
+*(Add notes here)*

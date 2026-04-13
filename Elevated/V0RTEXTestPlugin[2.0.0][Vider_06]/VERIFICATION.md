@@ -1,6 +1,6 @@
 # Verification Record — V0RTEX Test Plugin
 
-Maintained by the S.E.A. (Security & Enforcement Authority).
+Maintained by the D.V.V. Records the full review history of this plugin.
 
 ---
 
@@ -8,7 +8,7 @@ Maintained by the S.E.A. (Security & Enforcement Authority).
 
 | Field | Value |
 |---|---|
-| Reviewed by | Vider_06 (S.E.A.) |
+| Reviewed by | Vider_06 (D.V.V.) |
 | Review date | 2026-04-13 |
 | Verified version | 2.0.0 |
 | Class assigned | Elevated |
@@ -18,22 +18,22 @@ Maintained by the S.E.A. (Security & Enforcement Authority).
 
 | Permission | Justification |
 |---|---|
-| `fs.read.external` | ok |
-| `fs.read.v0rtex.logs` | ok |
-| `fs.read.v0rtex.reports` | ok |
-| `fs.write.csv` | ok |
-| `fs.write.html` | ok |
-| `fs.write.json` | ok |
-| `fs.write.pdf` | ok |
-| `fs.write.xml` | ok |
-| `fs.write.zip` | ok |
-| `net.background` | ok |
-| `net.listen` | ok |
-| `proc.read` | ok |
-| `sys.read.env` | ok |
+| `fs.read.external` |  |
+| `fs.read.v0rtex.logs` |  |
+| `fs.read.v0rtex.reports` |  |
+| `fs.write.csv` |  |
+| `fs.write.html` |  |
+| `fs.write.json` |  |
+| `fs.write.pdf` |  |
+| `fs.write.xml` |  |
+| `fs.write.zip` |  |
+| `net.background` |  |
+| `net.listen` |  |
+| `proc.read` |  |
+| `sys.read.env` |  |
 
 **Reviewer notes:**
-*(Add notes here)*
+*(D.V.V. notes added after review)*
 
 ---
 
