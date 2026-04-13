@@ -10,8 +10,8 @@ Maintained by the S.E.A. (Security & Enforcement Authority).
 |---|---|
 | Reviewed by | Vider_06 (S.E.A.) |
 | Review date | 2026-04-13 |
-| Verified version | 1.0.0 |
-| Class assigned | Verified |
+| Verified version | 2.0.0 |
+| Class assigned | Elevated |
 | Result | ✅ Accepted |
 
 **Reviewer notes:**
@@ -23,4 +23,4 @@ Maintained by the S.E.A. (Security & Enforcement Authority).
 
 | Version | Date | Result | Notes |
 |---|---|---|---|
-| 1.0.0 | 2026-04-13 | ✅ Initial | — |
+| 2.0.0 | 2026-04-13 | ✅ Initial | — |

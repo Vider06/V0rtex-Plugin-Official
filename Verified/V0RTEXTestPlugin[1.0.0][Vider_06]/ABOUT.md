@@ -1,10 +1,10 @@
 # V0RTEX Test Plugin
 
-> Developer test plugin — exercises every lifecycle hook and Verified API call.
+> Developer test plugin — exercises every lifecycle hook, every Verified API call, and every Elevated API call.
 
 **Author:** [Vider_06](https://github.com/Vider_06)
-**Version:** 1.0.0
-**Class:** ✅ Verified
+**Version:** 2.0.0
+**Class:** ⚡ Elevated
 **Target OS:** Windows
 **Min V0RTEX Version:** 1.0.1
 
