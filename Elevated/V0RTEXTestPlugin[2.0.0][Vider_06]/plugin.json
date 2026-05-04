@@ -30,9 +30,9 @@
   "target_os": [
     "windows"
   ],
-  "verified_date": "2026-04-13",
-  "elevated_date": "2026-04-13",
-  "last_updated": "2026-04-13",
+  "verified_date": "2026-05-04",
+  "elevated_date": "2026-05-04",
+  "last_updated": "2026-05-04",
   "hash_full": "329fc4ccc0820be9a2cd5df6d392fb0e14340a7d94205faf434dad0da73cb78a",
   "hash_structural": "d3a272123606ceb8ae2bf2e963cf2c426b616eb8da637b2338f766c937fc017e",
   "hash_ast": "894f8237c6529f33f07f50c8939acc12804bde56e24b2a479fd0c630e229575c",
@@ -41,7 +41,7 @@
   "versions": [
     {
       "version": "2.0.0",
-      "date": "2026-04-13",
+      "date": "2026-05-04",
       "hash_full": "329fc4ccc0820be9a2cd5df6d392fb0e14340a7d94205faf434dad0da73cb78a",
       "hash_structural": "d3a272123606ceb8ae2bf2e963cf2c426b616eb8da637b2338f766c937fc017e",
       "hash_ast": "894f8237c6529f33f07f50c8939acc12804bde56e24b2a479fd0c630e229575c",

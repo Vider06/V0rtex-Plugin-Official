@@ -9,7 +9,7 @@ Maintained by the D.V.V. Records the full review history of this plugin.
 | Field | Value |
 |---|---|
 | Reviewed by | Vider_06 (D.V.V.) |
-| Review date | 2026-04-13 |
+| Review date | 2026-05-04 |
 | Verified version | 2.0.0 |
 | Class assigned | Elevated |
 | Result | ✅ Accepted |
@@ -41,4 +41,4 @@ Maintained by the D.V.V. Records the full review history of this plugin.
 
 | Version | Date | Result | Permission Changes | Notes |
 |---|---|---|---|---|
-| 2.0.0 | 2026-04-13 | ✅ Initial | — | — |
+| 2.0.0 | 2026-05-04 | ✅ Initial | — | — |
