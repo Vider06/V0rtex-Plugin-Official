@@ -16,7 +16,7 @@ Browse, install, and publish plugins for the [V0RTEX malware analysis platform](
 
 ## What is this repository?
 
-This is the official V0RTEX Plugin Hub — the central place where all Verified, Elevated, and V0RTEX-Made plugins are published, reviewed, and maintained by the **D.V.V. (Dipartimento di Verifica V0RTEX)**.
+This is the official V0RTEX Plugin Hub — the central place where all Verified, Elevated, and V0RTEX-Made plugins are published, reviewed, and maintained by the **S.E.A (Security Enforcement Authoritie**.
 
 | I want to... | Go to |
 |---|---|
