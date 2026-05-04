@@ -33,7 +33,7 @@ In case of conflict, PLUGINS.md is authoritative.
 
 ### Banned Plugins
 
-Maintained in the private repository [V0rtex-Banned-Plugins](https://github.com/Vider06/V0rtex-Banned-Plugins), accessible only to the D.V.V. V0RTEX checks against it at every startup.
+Maintained in the private repository [V0rtex-Banned-Plugins](https://github.com/Vider06/V0rtex-Banned-Plugins), accessible only to the S.E.A. V0RTEX checks against it at every startup.
 
 ---
 
@@ -49,9 +49,9 @@ Maintained in the private repository [V0rtex-Banned-Plugins](https://github.com/
 
 ---
 
-## The D.V.V.
+## The S.E.A.
 
-All reviews, updates, and enforcement decisions are made by the **D.V.V. — Dipartimento di Verifica V0RTEX**, led by Vider_06.
+All reviews, updates, and enforcement decisions are made by the **D.V.V. — Security Enforcement Authoritie**, led by Vider_06.
 
 ---
 
