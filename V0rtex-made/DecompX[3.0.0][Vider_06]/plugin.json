@@ -1,0 +1,59 @@
+{
+  "name": "DecompX",
+  "id": "decompx",
+  "folder": "DecompX[3.0.0][Vider_06]",
+  "current_version": "3.0.0",
+  "author": "Vider_06",
+  "author_url": "https://github.com/Vider_06",
+  "repository": "",
+  "description": "Full-stack script decompiler & deobfuscator \u2014 EXE/PYC/PYZ/PY, Python 3.6-3.14, Nuitka/cx_Freeze/py2exe, semantic rename, CFF solver, XOR brute-force, call graph, data flow, vx API integration",
+  "class": "V0RTEX-Made",
+  "elevated_permissions": [
+    "fs.read.external",
+    "fs.read.v0rtex.logs",
+    "fs.read.v0rtex.reports",
+    "fs.write.csv",
+    "fs.write.html",
+    "fs.write.json",
+    "fs.write.pdf",
+    "fs.write.xml",
+    "fs.write.zip",
+    "net.background",
+    "net.listen",
+    "proc.read",
+    "sys.read.env"
+  ],
+  "background_network": false,
+  "background_endpoints": [],
+  "dependencies": [
+    "uncompyle6",
+    "decompyle3",
+    "pyinstxtractor",
+    "tempfile",
+    "dis",
+    "__future__"
+  ],
+  "min_v0rtex_version": "1.0.1",
+  "target_os": [
+    "windows"
+  ],
+  "verified_date": "2026-07-10",
+  "elevated_date": "2026-07-10",
+  "last_updated": "2026-07-10",
+  "hash_full": "b35afaf968259966eecee30832181fa3285e633e37ccd6d0ab2774b26d0ebd37",
+  "hash_structural": "0d4b0ae87080c115de638626262ed45abd40360b8d4124a15bbe76ca07e89596",
+  "hash_ast": "a26cbe05cce729c6ce83aed5d2eed7cd7f96f2613f8ad877be04a040a53ebba2",
+  "ast_token_count": 17409,
+  "violation": null,
+  "versions": [
+    {
+      "version": "3.0.0",
+      "date": "2026-07-10",
+      "hash_full": "b35afaf968259966eecee30832181fa3285e633e37ccd6d0ab2774b26d0ebd37",
+      "hash_structural": "0d4b0ae87080c115de638626262ed45abd40360b8d4124a15bbe76ca07e89596",
+      "hash_ast": "a26cbe05cce729c6ce83aed5d2eed7cd7f96f2613f8ad877be04a040a53ebba2",
+      "ast_token_count": 17409,
+      "archived_as": null
+    }
+  ]
+}
