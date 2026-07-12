@@ -1,0 +1,56 @@
+{
+  "name": "DecompX",
+  "id": "decompx",
+  "folder": "DecompX[4.4.0][Vider_06]",
+  "current_version": "4.4.0",
+  "author": "Vider_06",
+  "author_url": "https://github.com/Vider_06",
+  "repository": "",
+  "description": "Full-stack script decompiler & deobfuscator for malware research \u2014 Python/C/C++/Java/C#/.NET/JS/TS/PS1/VBE/Lua/PHP/Go/Rust/Ruby/Batch/Shell, EXE/PYC/PYZ/JAR/.class/.dll, semantic rename, CFF solver, XOR brute-force, call graph, data flow, YARA-lite, string clustering, threat scoring, entropy heatmap, packer fingerprinting, file metadata, coloured diff, tool checker, vx API. pycdc is an optional binary (not PyPI) \u2014 see github.com/zrax/pycdc. SCANNER NOTE: base64/marshal/exec used exclusively to ANALYSE target files, never to execute or exfiltrate. subprocess imported lazily inside functions only.",
+  "class": "Elevated",
+  "elevated_permissions": [
+    "fs.read.external",
+    "fs.read.v0rtex.logs",
+    "fs.read.v0rtex.reports",
+    "fs.write.csv",
+    "fs.write.html",
+    "fs.write.json",
+    "fs.write.pdf",
+    "fs.write.xml",
+    "fs.write.zip",
+    "net.background",
+    "net.listen",
+    "proc.read",
+    "sys.read.env"
+  ],
+  "background_network": false,
+  "background_endpoints": [],
+  "dependencies": [
+    "uncompyle6",
+    "decompyle3",
+    "pyinstxtractor"
+  ],
+  "min_v0rtex_version": "1.0.1",
+  "target_os": [
+    "windows"
+  ],
+  "verified_date": "2026-07-12",
+  "elevated_date": "2026-07-12",
+  "last_updated": "2026-07-12",
+  "hash_full": "6556a8e470143c262fdaf94a30aa92890a2ff5f1a9ff619ac68e365286f7b39a",
+  "hash_structural": "6c847e4b9a9bc418cacf090065a6b4d3eb2d95e6467008df598dc369dcb900a1",
+  "hash_ast": "54b03f22d184272fbd72366fd48293964c701a6512e338f481e748171a76aec1",
+  "ast_token_count": 37423,
+  "violation": null,
+  "versions": [
+    {
+      "version": "4.4.0",
+      "date": "2026-07-12",
+      "hash_full": "6556a8e470143c262fdaf94a30aa92890a2ff5f1a9ff619ac68e365286f7b39a",
+      "hash_structural": "6c847e4b9a9bc418cacf090065a6b4d3eb2d95e6467008df598dc369dcb900a1",
+      "hash_ast": "54b03f22d184272fbd72366fd48293964c701a6512e338f481e748171a76aec1",
+      "ast_token_count": 37423,
+      "archived_as": null
+    }
+  ]
+}
