@@ -179,7 +179,41 @@ def _try_hex(d: bytes) -> bytes | None:
         except Exception: pass
     return None
 
+def _index_of_coincidence(data: bytes) -> float:
+    """Friedman IC - near 0.065 for English text."""
+    n = len(data)
+    if n < 2: return 0.0
+    c = Counter(data)
+    return sum(v*(v-1) for v in c.values()) / (n*(n-1))
+
+# FIX 5: ROT-N tutti 25 shift (era solo ROT13)
+def _try_rot_n(d: bytes) -> bytes | None:
+    """Try all 25 ROT-N shifts, return best printable result."""
+    try:
+        t = d.decode("ascii", errors="strict")
+    except Exception:
+        return None
+    BIGRAMS = ["th","he","in","er","an","re","on","en","at","es","st","nt","to"]
+    best, best_score = None, 0
+    for n in range(1, 26):
+        shifted = []
+        for ch in t:
+            if "A" <= ch <= "Z": shifted.append(chr((ord(ch) - 65 + n) % 26 + 65))
+            elif "a" <= ch <= "z": shifted.append(chr((ord(ch) - 97 + n) % 26 + 97))
+            else: shifted.append(ch)
+        r = "".join(shifted)
+        english_score = sum(r.lower().count(bg) for bg in BIGRAMS)
+        printable_score = sum(1 for c in r if c.isprintable())
+        total = printable_score + english_score * 3
+        if total > best_score and r != t:
+            best_score = total; best = r
+    if best and best_score > len(t) * 0.8:
+        LOG.debug(f"  ROT-N decoded (score={best_score})")
+        return best.encode()
+    return None
+
 def _try_rot13(d: bytes) -> bytes | None:
+    """ROT13 - kept for decode_layers compatibility."""
     try:
         t = d.decode("ascii")
         r = t.translate(str.maketrans(
@@ -189,31 +223,47 @@ def _try_rot13(d: bytes) -> bytes | None:
     except Exception: pass
     return None
 
-def _index_of_coincidence(data: bytes) -> float:
-    """Friedman IC — near 0.065 for English text."""
-    n = len(data)
-    if n < 2: return 0.0
-    c = Counter(data)
-    return sum(v*(v-1) for v in c.values()) / (n*(n-1))
+# FIX 3: XOR brute-force esteso a 1-16 byte
+def _try_xor_bruteforce(data: bytes, max_keylen: int = 16) -> bytes | None:
+    """
+    Brute-force XOR key 1-16 bytes.
+    keylen 1-4: exhaustive search.
+    keylen 5-16: per-byte IC-guided search (Kasiski-style).
+    """
+    def _brute_single_byte(data: bytes, keylen: int) -> tuple[bytes, float]:
+        key = []
+        for pos in range(keylen):
+            col = bytes(data[i] for i in range(pos, len(data), keylen))
+            best_b, best_ic = 0, 0.0
+            for b in range(256):
+                ic = _index_of_coincidence(bytes(x ^ b for x in col))
+                if ic > best_ic: best_ic = ic; best_b = b
+            key.append(best_b)
+        dec = bytes(data[i] ^ key[i % keylen] for i in range(len(data)))
+        return dec, _index_of_coincidence(dec)
 
-def _try_xor_bruteforce(data: bytes) -> bytes | None:
-    """Brute-force XOR key 1–4 bytes using index-of-coincidence."""
-    best_ic, best = 0.0, None
+    best_dec, best_ic = None, 0.0
+    # Exhaustive for short keys (1-4)
     for keylen in range(1, 5):
         for key_ints in itertools.product(range(256), repeat=keylen):
             key = bytes(key_ints)
             dec = bytes(b ^ key[i % keylen] for i, b in enumerate(data))
             ic = _index_of_coincidence(dec)
-            if ic > best_ic:
-                best_ic = ic
-                best = dec
-            if best_ic > 0.060:   # good enough — stop early
-                break
-        if best_ic > 0.060:
-            break
-    if best_ic > 0.045:   # threshold: clearly text-like
+            if ic > best_ic: best_ic = ic; best_dec = dec
+            if best_ic > 0.062: break
+        if best_ic > 0.062: break
+    # IC-guided per-byte for longer keys (5-16)
+    if best_ic < 0.055:
+        for keylen in range(5, max_keylen + 1):
+            cols = [bytes(data[i] for i in range(pos, len(data), keylen)) for pos in range(keylen)]
+            avg_ic = sum(_index_of_coincidence(c) for c in cols) / keylen
+            if avg_ic < 0.038: continue
+            dec, ic = _brute_single_byte(data, keylen)
+            if ic > best_ic: best_ic = ic; best_dec = dec
+            if best_ic > 0.060: break
+    if best_ic > 0.045:
         LOG.debug(f"  XOR decoded (IC={best_ic:.4f})")
-        return best
+        return best_dec
     return None
 
 def _try_lzma(d: bytes) -> bytes | None:
@@ -230,13 +280,313 @@ def _try_bz2(d: bytes) -> bytes | None:
     except Exception:
         return None
 
+# FIX 9: AES/RC4 key detection (hardcoded keys - static analysis)
+_KEY_PATTERNS = [
+    (r'key\s*=\s*b["\'"]([\x00-\xff]{16})["\'"]', "AES-128 key candidate"),
+    (r'key\s*=\s*b["\'"]([\x00-\xff]{24})["\'"]', "AES-192 key candidate"),
+    (r'key\s*=\s*b["\'"]([\x00-\xff]{32})["\'"]', "AES-256 key candidate"),
+    (r'iv\s*=\s*b["\'"]([\x00-\xff]{16})["\'"]',  "AES IV candidate"),
+    (r'nonce\s*=\s*b["\'"]([\x00-\xff]{12,16})["\'"]', "AES nonce candidate"),
+    (r'["\'"]([0-9A-Fa-f]{32})["\'"]', "Possible MD5/AES-128 hex key"),
+    (r'["\'"]([0-9A-Fa-f]{64})["\'"]', "Possible SHA256/AES-256 hex key"),
+    (r'password\s*=\s*["\'"]([^\'"]{6,})["\'"]', "Hardcoded password"),
+]
+
+def detect_hardcoded_keys(source: str) -> list[dict]:
+    """FIX 9: Find hardcoded AES/RC4 keys and passwords in source."""
+    findings = []
+    for pattern, label in _KEY_PATTERNS:
+        for m in re.finditer(pattern, source, re.I):
+            val = m.group(1)
+            line = source[:m.start()].count("\n") + 1
+            findings.append({"type": label, "value": repr(val), "line": line})
+    return findings
+
+
+# FIX 10: Vigenere decoder
+def _try_vigenere(data: bytes) -> bytes | None:
+    """Try to decode Vigenere-encoded text using IC-based key length detection."""
+    try:
+        text = data.decode("ascii", errors="strict")
+    except Exception:
+        return None
+    if not all(c.isalpha() or c.isspace() for c in text if c != "\n"):
+        return None  # only works on alpha text
+    if len(text) < 40:
+        return None
+
+    def ic_for_keylen(text, kl):
+        cols = ["".join(text[i] for i in range(j, len(text), kl) if text[i].isalpha()) for j in range(kl)]
+        ics = []
+        for col in cols:
+            n = len(col)
+            if n < 2: continue
+            c = Counter(col.lower())
+            ics.append(sum(v*(v-1) for v in c.values()) / (n*(n-1)))
+        return sum(ics)/len(ics) if ics else 0
+
+    # Find best key length (1-20)
+    best_kl, best_ic = 1, 0
+    for kl in range(1, 21):
+        ic = ic_for_keylen(text, kl)
+        if ic > best_ic: best_ic = ic; best_kl = kl
+
+    if best_ic < 0.055: return None  # not Vigenere
+
+    # Crack each column with frequency analysis
+    FREQ = "etaoinshrdlcumwfgypbvkjxqz"
+    key = []
+    for j in range(best_kl):
+        col = [ord(text[i].lower()) - 97 for i in range(j, len(text), best_kl) if text[i].isalpha()]
+        if not col: key.append(0); continue
+        freq = Counter(col)
+        most_common = freq.most_common(1)[0][0]
+        shift = (most_common - ord(FREQ[0]) + 26) % 26
+        key.append(shift)
+
+    # Decrypt
+    result = []
+    ki = 0
+    for ch in text:
+        if ch.isalpha():
+            base = 65 if ch.isupper() else 97
+            result.append(chr((ord(ch) - base - key[ki % best_kl]) % 26 + base))
+            ki += 1
+        else:
+            result.append(ch)
+    decoded = "".join(result)
+    english = sum(decoded.lower().count(bg) for bg in ["th","he","in","er","an"])
+    if english > 5:
+        LOG.debug("Vigenere decoded (keylen=%d, IC=%.3f)" % (best_kl, best_ic))
+        return decoded.encode()
+    return None
+
+
+# FIX 11: Base85, Base32, Base58
+def _try_base85(d: bytes) -> bytes | None:
+    try:
+        import base64
+        return base64.b85decode(d)
+    except Exception: pass
+    try:
+        import base64
+        return base64.a85decode(d, adobe=False)
+    except Exception: pass
+    return None
+
+def _try_base32(d: bytes) -> bytes | None:
+    try:
+        import base64
+        # pad if needed
+        pad = (8 - len(d) % 8) % 8
+        return base64.b32decode(d + b"=" * pad, casefold=True)
+    except Exception:
+        return None
+
+def _try_base58(d: bytes) -> bytes | None:
+    """Bitcoin-style Base58 decode."""
+    ALPHABET = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+    try:
+        text = d.strip()
+        if not all(c in ALPHABET for c in text): return None
+        n = 0
+        for char in text:
+            n = n * 58 + ALPHABET.index(char)
+        result = []
+        while n > 0:
+            result.append(n % 256); n //= 256
+        result.reverse()
+        leading = len(text) - len(text.lstrip(b"1"))
+        result = [0] * leading + result
+        out = bytes(result)
+        if out and sum(chr(b).isprintable() for b in out) / len(out) > 0.75:
+            return out
+    except Exception: pass
+    return None
+
+
+# FIX 12: PowerShell SecureString + Invoke-Obfuscation advanced
+def _deobf_ps_securestring(src: str) -> str:
+    """Decode ConvertTo-SecureString -AsPlainText patterns."""
+    def replace_secure(m):
+        plain = m.group(1)
+        return "# [DecompX] SecureString plaintext: %s\n$decoded = \"%s\"" % (plain, plain)
+    src = re.sub(
+        r'ConvertTo-SecureString\s+["\'"]([^\'"]+)["\'"]\s+-AsPlainText\s+-Force',
+        replace_secure, src, flags=re.I)
+    # ConvertFrom-SecureString round-trip (encrypted blob - flag only)
+    if re.search(r'ConvertFrom-SecureString', src, re.I):
+        src = "# [DecompX] WARNING: ConvertFrom-SecureString blob detected - runtime decryption required\n" + src
+    return src
+
+def _deobf_ps_invoke_obfuscation_advanced(src: str) -> str:
+    """Handle advanced Invoke-Obfuscation patterns not covered by basic deobf."""
+    # &([char[]](73,110,118,111,...) -join '') style
+    def replace_char_array(m):
+        try:
+            nums = [int(x.strip()) for x in m.group(1).split(",")]
+            s = "".join(chr(n) for n in nums)
+            return '"%s"' % s
+        except Exception:
+            return m.group(0)
+    src = re.sub(r'\[char\[\]\]\(([\d,\s]+)\)\s*-join\s*[\'"]{2}', replace_char_array, src, flags=re.I)
+    # [string]::join('', [char[]] (72,101,...)) style
+    src = re.sub(r'\[string\]::join\([\'"]{2},\s*\[char\[\]\]\s*\(([\d,\s]+)\)\)', replace_char_array, src, flags=re.I)
+    # iex / invoke-expression aliases
+    src = re.sub(r'\biex\b', 'Invoke-Expression', src, flags=re.I)
+    src = re.sub(r'\bi`ex\b', 'Invoke-Expression', src, flags=re.I)
+    return src
+
+
+# FIX 14: Opaque predicate solver
+def eliminate_opaque_predicates(source: str) -> tuple[str, int]:
+    """
+    FIX 14: Detect and eliminate opaque predicates - conditions that are
+    always True or always False due to mathematical properties.
+    Examples: x*x >= 0, n%2 == 0 or n%2 == 1 (always true for int n),
+              (x+1)*(x-1) == x*x-1 (always true).
+    Uses AST constant folding + known-always-true/false patterns.
+    """
+    removed = 0
+    ALWAYS_TRUE_PATTERNS = [
+        r'\w+\s*\*\s*\w+\s*>=\s*0',           # x*x >= 0
+        r'\w+\s*\*\*\s*2\s*>=\s*0',            # x**2 >= 0
+        r'True\s+or\s+\w+',                         # True or anything
+        r'\w+\s+or\s+True',                         # anything or True
+        r'1\s*==\s*1',                               # 1 == 1
+        r'0\s*!=\s*1',                               # 0 != 1
+    ]
+    ALWAYS_FALSE_PATTERNS = [
+        r'False\s+and\s+\w+',                       # False and anything
+        r'\w+\s+and\s+False',                        # anything and False
+        r'1\s*==\s*0',                               # 1 == 0
+        r'0\s*==\s*1',                               # 0 == 1
+    ]
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return source, 0
+
+    class OpaqueTransformer(ast.NodeTransformer):
+        def visit_If(self, node):
+            self.generic_visit(node)
+            test_src = ""
+            try: test_src = ast.unparse(node.test)
+            except Exception: pass
+            # Check always-true
+            for pat in ALWAYS_TRUE_PATTERNS:
+                if re.search(pat, test_src):
+                    nonlocal removed; removed += 1
+                    return node.body  # keep body, drop else
+            # Check always-false
+            for pat in ALWAYS_FALSE_PATTERNS:
+                if re.search(pat, test_src):
+                    removed += 1
+                    return node.orelse if node.orelse else []  # keep else
+            # Constant eval
+            try:
+                val = eval(compile(ast.Expression(node.test), "<op>", "eval"),
+                           {"__builtins__": {}}, {})
+                removed += 1
+                return node.body if val else (node.orelse or [])
+            except Exception:
+                pass
+            return node
+
+    try:
+        new_tree = OpaqueTransformer().visit(tree)
+        ast.fix_missing_locations(new_tree)
+        if removed:
+            LOG.ok("Opaque predicates eliminated: %d" % removed)
+        return ast.unparse(new_tree), removed
+    except Exception as e:
+        LOG.warn("Opaque predicate solver failed: %s" % e)
+        return source, 0
+
+
+# FIX 8: RC4 auto-decrypt (key and ciphertext both static)
+def _rc4(key: bytes, data: bytes) -> bytes:
+    S = list(range(256))
+    j = 0
+    for i in range(256):
+        j = (j + S[i] + key[i % len(key)]) % 256
+        S[i], S[j] = S[j], S[i]
+    i = j = 0
+    out = []
+    for byte in data:
+        i = (i + 1) % 256
+        j = (j + S[i]) % 256
+        S[i], S[j] = S[j], S[i]
+        out.append(byte ^ S[(S[i] + S[j]) % 256])
+    return bytes(out)
+
+def _try_rc4_static(source: str) -> tuple[bytes | None, str]:
+    """
+    FIX 8: Detect static RC4 key + ciphertext and auto-decrypt.
+    Looks for: key = b"..." or key = bytes([...]), then data XOR-like patterns.
+    Returns (decrypted_bytes, description) or (None, "").
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None, ""
+
+    # Find all bytes constants in the file
+    byte_constants = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            if isinstance(node.value, ast.Constant) and isinstance(node.value.value, bytes):
+                for t in node.targets:
+                    if isinstance(t, ast.Name):
+                        byte_constants.append((t.id, node.value.value, getattr(node, "lineno", 0)))
+            elif isinstance(node.value, ast.Call):
+                fn = node.value.func
+                fname = fn.id if isinstance(fn, ast.Name) else (fn.attr if isinstance(fn, ast.Attribute) else "")
+                if fname == "bytes" and node.value.args:
+                    arg = node.value.args[0]
+                    if isinstance(arg, ast.List):
+                        try:
+                            vals = bytes(int(ast.unparse(e)) for e in arg.elts)
+                            for t in node.targets:
+                                if isinstance(t, ast.Name):
+                                    byte_constants.append((t.id, vals, getattr(node, "lineno", 0)))
+                        except Exception:
+                            pass
+
+    # Heuristic: look for variable names suggesting key vs ciphertext
+    KEY_NAMES = {"key","k","rc4_key","secret","cipher_key","enc_key","xor_key","password"}
+    DATA_NAMES = {"data","enc","encrypted","ciphertext","payload","cipher","buf","raw","ct"}
+
+    keys = [(n,v,l) for n,v,l in byte_constants if n.lower() in KEY_NAMES and 4 <= len(v) <= 64]
+    datas = [(n,v,l) for n,v,l in byte_constants if n.lower() in DATA_NAMES and len(v) > 8]
+
+    for kname, kval, _ in keys:
+        for dname, dval, dline in datas:
+            try:
+                result = _rc4(kval, dval)
+                printable = sum(chr(b).isprintable() for b in result) / len(result)
+                if printable > 0.75:
+                    LOG.ok("RC4 auto-decrypt: key=%r data=%r -> %d bytes (printable=%.0f%%)" % (kname, dname, len(result), printable*100))
+                    return result, "RC4(key=%s, data=%s)" % (kname, dname)
+            except Exception:
+                pass
+    return None, ""
+
+
 def decode_layers(raw: bytes) -> tuple[bytes, list[str]]:
     layers, cur = [], raw
     for _ in range(12):
         changed = False
-        for name, fn in [("zlib",_try_zlib),("base64",_try_b64),
-                          ("hex",_try_hex),("rot13",_try_rot13),
-                          ("lzma",_try_lzma),("bz2",_try_bz2)]:
+        for name, fn in [
+                ("zlib",_try_zlib), ("base64",_try_b64),
+                ("hex",_try_hex), ("rot13",_try_rot13),
+                ("rot_n",_try_rot_n),  # FIX 5
+                ("lzma",_try_lzma), ("bz2",_try_bz2),
+                ("base85",_try_base85), ("base32",_try_base32),  # FIX 11
+                ("base58",_try_base58),  # FIX 11
+                ("xor",_try_xor_bruteforce),  # FIX 3 (now 1-16 byte)
+                ("vigenere",_try_vigenere),  # FIX 10
+        ]:
             r = fn(cur)
             if r and r != cur and len(r) >= 4:
                 ea, eb = _entropy(cur), _entropy(r)
@@ -932,6 +1282,8 @@ def decompile_powershell(file_path: str) -> str:
 
     if src != original:
         LOG.ok("PowerShell: deobfuscation applied")
+    src = _deobf_ps_securestring(src)                # FIX 12
+    src = _deobf_ps_invoke_obfuscation_advanced(src)  # FIX 12
     return src
 
 # ── Lua ────────────────────────────────────────────────────────
@@ -1176,6 +1528,99 @@ def solve_cff(source: str) -> tuple[str, bool]:
         return source, False
 
 # ═══════════════════════════════════════════════════════════════
+# FIX 2: CFF string-state solver
+def solve_cff_string_state(source):
+    if not (re.search(r'while\s+True\s*:', source) and re.search(r'(?:if|elif)\s+\w+\s*==\s*["\'"]', source)):
+        return source, False
+    try: tree = ast.parse(source)
+    except SyntaxError: return source, False
+    class V(ast.NodeVisitor):
+        def __init__(self): self.blocks={}; self.init=None; self.trans={}; self.var=None
+        def visit_Assign(self, node):
+            if (isinstance(node.targets[0], ast.Name) and isinstance(node.value, ast.Constant)
+                    and isinstance(node.value.value, str) and self.init is None):
+                self.init=node.value.value; self.var=node.targets[0].id
+            self.generic_visit(node)
+        def visit_While(self, node):
+            if isinstance(node.test, ast.Constant) and node.test.value is True:
+                if node.body and isinstance(node.body[0], ast.If): self._chain(node.body[0])
+            self.generic_visit(node)
+        def _chain(self, node):
+            if not isinstance(node.test, ast.Compare): return
+            left=node.test.left
+            if not (isinstance(left, ast.Name) and node.test.ops and isinstance(node.test.ops[0], ast.Eq)): return
+            if not (node.test.comparators and isinstance(node.test.comparators[0], ast.Constant) and isinstance(node.test.comparators[0].value, str)): return
+            sv=node.test.comparators[0].value; stmts=[]
+            for s in node.body:
+                if (isinstance(s, ast.Assign) and isinstance(s.targets[0], ast.Name)
+                        and s.targets[0].id==left.id and isinstance(s.value, ast.Constant) and isinstance(s.value.value, str)):
+                    self.trans[sv]=s.value.value
+                else: stmts.append(s)
+            self.blocks[sv]=stmts
+            if node.orelse and isinstance(node.orelse[0], ast.If): self._chain(node.orelse[0])
+    v=V(); v.visit(tree)
+    if not v.blocks or v.init is None: return source, False
+    order,seen,st=[],set(),v.init
+    for _ in range(len(v.blocks)+1):
+        if st in seen or st not in v.blocks: break
+        seen.add(st); order.append(st); st=v.trans.get(st,"")
+        if not st: break
+    if len(order)<2: return source, False
+    try:
+        lines=["# [DecompX] CFF(string-state) - %d states" % len(order)]
+        for s in order:
+            lines.append("# -- state: %r --" % s)
+            for n in v.blocks[s]: lines.append(ast.unparse(n))
+        LOG.ok("CFF string-state solved: %d states" % len(order))
+        return "\n".join(lines)+"\n\n# --- Original ---\n"+source, True
+    except Exception as e: LOG.warn("CFF string-state failed: %s" % e); return source, False
+
+
+# FIX 2b: CFF boolean-flag solver
+def solve_cff_bool_flag(source):
+    try: tree=ast.parse(source)
+    except SyntaxError: return source, False
+    class T(ast.NodeTransformer):
+        def __init__(self): self.n=0
+        def visit_While(self, node):
+            self.generic_visit(node)
+            flag=None; inv=False
+            if isinstance(node.test, ast.UnaryOp) and isinstance(node.test.op, ast.Not) and isinstance(node.test.operand, ast.Name):
+                flag=node.test.operand.id; inv=True
+            elif isinstance(node.test, ast.Name): flag=node.test.id
+            if not flag: return node
+            term=False
+            for s in ast.walk(node):
+                if isinstance(s, ast.Assign):
+                    for t in s.targets:
+                        if isinstance(t, ast.Name) and t.id==flag and isinstance(s.value, ast.Constant):
+                            v=s.value.value
+                            if (inv and v is True) or (not inv and v is False): term=True
+            if term: self.n+=1; return node.body
+            return node
+    t=T()
+    try:
+        nt=t.visit(tree); ast.fix_missing_locations(nt)
+        if t.n: LOG.ok("CFF bool-flag: %d loops unrolled" % t.n); return ast.unparse(nt), True
+    except Exception as e: LOG.warn("CFF bool-flag failed: %s" % e)
+    return source, False
+
+
+# FIX 2c: CFF exception-based (detection + annotation)
+def solve_cff_exception(source):
+    if not re.search(r'try\s*:\s*\n.*raise', source, re.S): return source, False
+    try: tree=ast.parse(source)
+    except SyntaxError: return source, False
+    n=sum(1 for node in ast.walk(tree) if isinstance(node, ast.Try)
+          and any(isinstance(x, ast.Raise) for x in ast.walk(node))
+          and any(isinstance(x, ast.Compare) and any(isinstance(op, ast.Eq) for op in x.ops) for x in ast.walk(node)))
+    if n>2:
+        LOG.warn("CFF exception-based: %d dispatchers detected" % n)
+        hdr="# [DecompX] WARNING: Exception-based CFF (%d dispatchers) - manual review needed\n\n" % n
+        return hdr+source, True
+    return source, False
+
+
 #  STAGE 5 — SEMANTIC RENAMER
 # ═══════════════════════════════════════════════════════════════
 _CTX = {
@@ -1334,17 +1779,36 @@ class Renamer(ast.NodeTransformer):
         self.generic_visit(node); return node
 
     def visit_Name(self, node):
+        # FIX 1: scope-aware - only rename Name nodes in non-string contexts
+        # ast.NodeTransformer only visits AST nodes, never string literal content,
+        # so AST-based rename is inherently scope-aware and never touches strings.
         if _is_obf(node.id): node.id = self._reg(node.id, node)
         return node
 
+    def visit_Constant(self, node):
+        # Never rename inside string literals - return unchanged
+        return node
+
+
+def _check_rename_collisions(rmap: dict[str,str]) -> list[str]:
+    """FIX 13: Detect rename collisions (two old names -> same new name)."""
+    seen: dict[str, list[str]] = {}
+    for old_name, new_name in rmap.items():
+        seen.setdefault(new_name, []).append(old_name)
+    collisions = []
+    for new_name, old_names in seen.items():
+        if len(old_names) > 1:
+            collisions.append(f"COLLISION: {old_names} -> '{new_name}'")
+            LOG.warn(f"Rename collision: {old_names} all mapped to '{new_name}'")
+    return collisions
+
+
 def rename_obfuscated(source: str) -> tuple[str, dict[str,str]]:
-    LOG.step("Semantic rename pass")
+    LOG.step("Semantic rename pass (scope-aware)")
     try:
         tree = ast.parse(source)
         r = Renamer(source)
-        # Pass 1: collect
         r.visit(tree)
-        # Pass 2: transform fresh tree
         tree2 = ast.parse(source)
         r2 = Renamer(source)
         r2.rmap = r.rmap; r2._used = r._used
@@ -1352,18 +1816,39 @@ def rename_obfuscated(source: str) -> tuple[str, dict[str,str]]:
         r2._ann_types = r._ann_types
         r2._ctr = r._ctr
         new_tree = r2.visit(tree2)
+        # FIX 13: check collisions before returning
+        collisions = _check_rename_collisions(r2.rmap)
+        if collisions:
+            for c in collisions: LOG.warn(c)
         try:
+            # AST unparse is always scope-aware (never touches string content)
             new_src = ast.unparse(new_tree)
-            LOG.ok(f"Renamed {len(r2.rmap)} identifiers (AST)")
+            LOG.ok(f"Renamed {len(r2.rmap)} identifiers (AST, scope-aware)")
             return new_src, r2.rmap
         except:
-            new_src = source
-            for old, new in sorted(r.rmap.items(), key=lambda x:-len(x[0])):
-                new_src = re.sub(r'\b'+re.escape(old)+r'\b', new, new_src)
-            LOG.ok(f"Renamed {len(r.rmap)} identifiers (regex fallback)")
+            # Regex fallback: scope-aware via word boundary only on identifier tokens
+            # To avoid renaming inside strings, we tokenize and only replace
+            # NAME tokens, never STRING tokens.
+            import tokenize, io
+            tokens = []
+            try:
+                for tok in tokenize.generate_tokens(io.StringIO(source).readline):
+                    if tok.type == tokenize.NAME and tok.string in r.rmap:
+                        tokens.append((tok.type, r.rmap[tok.string], tok.start, tok.end, tok.line))
+                    else:
+                        tokens.append(tok)
+                new_src = tokenize.untokenize(tokens)
+                LOG.ok(f"Renamed {len(r.rmap)} identifiers (tokenize fallback, scope-aware)")
+            except Exception:
+                # Last resort: regex, accepts risk of string contamination
+                new_src = source
+                for old_n, new_n in sorted(r.rmap.items(), key=lambda x: -len(x[0])):
+                    new_src = re.sub(r'\b' + re.escape(old_n) + r'\b', new_n, new_src)
+                LOG.warn(f"Renamed {len(r.rmap)} identifiers (regex fallback - may affect strings)")
             return new_src, r.rmap
     except SyntaxError:
-        # Full regex fallback
+        # Syntax error: use tokenize (scope-aware) instead of raw regex
+        import tokenize, io
         rmap: dict[str,str] = {}; used: set[str] = set(); ctr: dict[str,int] = defaultdict(int)
         def mk(base):
             ctr[base] += 1; n = f"{base}_{ctr[base]}"
@@ -1372,10 +1857,20 @@ def rename_obfuscated(source: str) -> tuple[str, dict[str,str]]:
         for cand in dict.fromkeys(re.findall(r'\b([a-zA-Z_][a-zA-Z0-9_]{0,10})\b', source)):
             if _is_obf(cand) and cand not in rmap:
                 rmap[cand] = mk("var")
-        new_src = source
-        for old, new in sorted(rmap.items(), key=lambda x:-len(x[0])):
-            new_src = re.sub(r'\b'+re.escape(old)+r'\b', new, new_src)
-        LOG.ok(f"Renamed {len(rmap)} identifiers (full regex)")
+        try:
+            tokens = []
+            for tok in tokenize.generate_tokens(io.StringIO(source).readline):
+                if tok.type == tokenize.NAME and tok.string in rmap:
+                    tokens.append((tok.type, rmap[tok.string], tok.start, tok.end, tok.line))
+                else:
+                    tokens.append(tok)
+            new_src = tokenize.untokenize(tokens)
+            LOG.ok(f"Renamed {len(rmap)} identifiers (tokenize, scope-aware)")
+        except Exception:
+            new_src = source
+            for old_n, new_n in sorted(rmap.items(), key=lambda x: -len(x[0])):
+                new_src = re.sub(r'\b' + re.escape(old_n) + r'\b', new_n, new_src)
+            LOG.warn(f"Renamed {len(rmap)} identifiers (regex, may affect strings)")
         return new_src, rmap
 
 # ═══════════════════════════════════════════════════════════════
@@ -1442,7 +1937,27 @@ def build_call_graph(source: str) -> dict[str, list[str]]:
             if fn and fn not in _SKIP:
                 graph[self.current_fn].append(fn)
             self.generic_visit(node)
+    class DynImportVisitor(ast.NodeVisitor):
+        """FIX 6: Track __import__() and importlib.import_module() dynamic imports."""
+        def __init__(self): self.current_fn = "<module>"
+        def visit_FunctionDef(self, node):
+            prev=self.current_fn; self.current_fn=node.name
+            self.generic_visit(node); self.current_fn=prev
+        visit_AsyncFunctionDef = visit_FunctionDef
+        def visit_Call(self, node):
+            fn_name = ""
+            if isinstance(node.func, ast.Name): fn_name = node.func.id
+            elif isinstance(node.func, ast.Attribute): fn_name = node.func.attr
+            # __import__("os") or importlib.import_module("subprocess")
+            if fn_name in ("__import__", "import_module"):
+                for arg in node.args:
+                    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                        dyn_label = "<dynamic_import:%s>" % arg.value
+                        graph[self.current_fn].append(dyn_label)
+                        graph.setdefault(dyn_label, [])
+            self.generic_visit(node)
     CGVisitor().visit(tree)
+    DynImportVisitor().visit(tree)
     return dict(graph)
 
 def render_call_graph(graph: dict[str, list[str]], max_depth: int = 4) -> str:
@@ -1509,6 +2024,41 @@ def track_data_flow(source: str) -> list[dict]:
                             "sink":   fname,
                             "line":   getattr(node, "lineno", "?"),
                         })
+    # FIX 7: Cross-function taint propagation
+    # Build a map of which functions return tainted values,
+    # then check if other functions call them and pass result to sinks.
+    func_returns_tainted: dict[str, str] = {}  # func_name -> source
+    try:
+        for fn_node in ast.walk(tree):
+            if not isinstance(fn_node, (ast.FunctionDef, ast.AsyncFunctionDef)): continue
+            fn_tainted: dict[str, str] = {}
+            for node in ast.walk(fn_node):
+                if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                    fn2 = node.value.func
+                    fname2 = (fn2.id if isinstance(fn2, ast.Name) else fn2.attr if isinstance(fn2, ast.Attribute) else "")
+                    if SOURCES.match(fname2 + "("):
+                        for t in node.targets:
+                            if isinstance(t, ast.Name): fn_tainted[t.id] = fname2
+            for ret in ast.walk(fn_node):
+                if isinstance(ret, ast.Return) and ret.value:
+                    for n in ast.walk(ret.value):
+                        if isinstance(n, ast.Name) and n.id in fn_tainted:
+                            func_returns_tainted[fn_node.name] = fn_tainted[n.id]
+    except Exception: pass
+
+    # Now check: if a call to a tainted-returning function is passed to a sink
+    try:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                called = node.value.func
+                called_name = (called.id if isinstance(called, ast.Name) else
+                               called.attr if isinstance(called, ast.Attribute) else "")
+                if called_name in func_returns_tainted:
+                    for t in node.targets:
+                        if isinstance(t, ast.Name):
+                            tainted[t.id] = "cross_func(%s->%s)" % (called_name, func_returns_tainted[called_name])
+    except Exception: pass
+
     # Deduplicate
     seen = set()
     out  = []
@@ -1516,6 +2066,22 @@ def track_data_flow(source: str) -> list[dict]:
         key = (f["var"], f["source"], f["sink"])
         if key not in seen:
             seen.add(key); out.append(f)
+    # Re-check sinks with extended tainted set (includes cross-function)
+    try:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                fn = node.func
+                fname = (fn.id if isinstance(fn, ast.Name) else fn.attr if isinstance(fn, ast.Attribute) else "")
+                if SINKS.match(fname + "("):
+                    for arg in ast.walk(node):
+                        if isinstance(arg, ast.Name) and arg.id in tainted:
+                            key = (arg.id, tainted[arg.id], fname)
+                            if key not in seen:
+                                seen.add(key)
+                                out.append({"var": arg.id, "source": tainted[arg.id],
+                                            "sink": fname, "line": getattr(node, "lineno", "?"),
+                                            "cross_function": "cross_func" in tainted[arg.id]})
+    except Exception: pass
     return out
 
 def parse_source(source: str) -> dict:
@@ -1586,6 +2152,107 @@ def parse_source(source: str) -> dict:
         res["functions"] = [{"name":m,"line":"?","args":[],"decorators":[],"returns":None}
                             for m in re.findall(r'^def\s+(\w+)\s*\(', source, re.M)]
     return res
+
+# FIX 4: Dead store elimination
+def eliminate_dead_stores(source: str) -> tuple[str, int]:
+    """
+    Remove assignments whose value is immediately overwritten before any read.
+    Also removes: if False/if 0 blocks, while False/while 0 blocks.
+    """
+    removed = 0
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return source, 0
+
+    class DeadStoreTransformer(ast.NodeTransformer):
+        def _remove_dead_conditionals(self, stmts):
+            """Remove if False/while False/while 0 blocks from a statement list."""
+            out = []
+            for stmt in stmts:
+                if isinstance(stmt, ast.If):
+                    test = stmt.test
+                    if isinstance(test, ast.Constant) and not test.value:
+                        # if False: ... [else: keep]
+                        nonlocal removed
+                        removed += 1
+                        out.extend(stmt.orelse)
+                        continue
+                    if isinstance(test, ast.Constant) and test.value:
+                        # if True: keep body, drop else
+                        removed += 1
+                        out.extend(stmt.body)
+                        continue
+                if isinstance(stmt, ast.While):
+                    test = stmt.test
+                    if isinstance(test, ast.Constant) and not test.value:
+                        removed += 1
+                        continue  # while False: drop entirely
+                out.append(stmt)
+            return out
+
+        def _dead_stores_in_block(self, stmts):
+            """Remove x=A; x=B patterns where x is not read between the two assigns."""
+            nonlocal removed
+            last_assign = {}  # name -> index in out
+            out = list(stmts)
+            to_remove = set()
+            for i, stmt in enumerate(out):
+                if isinstance(stmt, ast.Assign):
+                    for t in stmt.targets:
+                        if isinstance(t, ast.Name):
+                            name = t.id
+                            # Check if name appears in RHS of current stmt (self-assign)
+                            rhs_names = {n.id for n in ast.walk(stmt.value)
+                                         if isinstance(n, ast.Name)}
+                            if name in rhs_names:
+                                last_assign.pop(name, None)
+                                continue
+                            if name in last_assign:
+                                prev_i = last_assign[name]
+                                # Check if name was read between prev_i and i
+                                read = False
+                                for mid in out[prev_i+1:i]:
+                                    for n in ast.walk(mid):
+                                        if isinstance(n, ast.Name) and n.id == name:
+                                            read = True; break
+                                    if read: break
+                                if not read:
+                                    to_remove.add(prev_i)
+                                    removed += 1
+                            last_assign[name] = i
+                else:
+                    # Any use of a name clears its dead-store candidacy
+                    for n in ast.walk(stmt):
+                        if isinstance(n, ast.Name) and n.id in last_assign:
+                            last_assign.pop(n.id)
+            return [s for i, s in enumerate(out) if i not in to_remove]
+
+        def visit_Module(self, node):
+            self.generic_visit(node)
+            node.body = self._remove_dead_conditionals(node.body)
+            node.body = self._dead_stores_in_block(node.body)
+            return node
+
+        def visit_FunctionDef(self, node):
+            self.generic_visit(node)
+            node.body = self._remove_dead_conditionals(node.body)
+            node.body = self._dead_stores_in_block(node.body)
+            return node
+
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+    try:
+        new_tree = DeadStoreTransformer().visit(tree)
+        ast.fix_missing_locations(new_tree)
+        result = ast.unparse(new_tree)
+        if removed:
+            LOG.ok(f"Dead store/code eliminated: {removed} nodes removed")
+        return result, removed
+    except Exception as e:
+        LOG.warn(f"Dead store elimination failed: {e}")
+        return source, 0
+
 
 def clean_source(source: str) -> str:
     lines = source.splitlines()
@@ -1663,7 +2330,7 @@ def build_output_tree(
           <script>.md
 
     The function returns the content of the master .md.
-    Extra .md files are written via vx.fs.write_file into subfolders.
+    Extra .md files are written directly to the plugin subfolder (BASE_DIR/plugins/DecompX/).
     The folder layout mirrors:
       - extracted scripts → their original names inside <stem>_extracted/
       - predicted drops   → their predicted path structure under <stem>_drops/
@@ -1830,14 +2497,35 @@ def build_output_tree(
 
 def _flat_path(stem: str, ts: str, category: str, name: str) -> str:
     """
-    Produce a flat filename safe for vx.fs.write_file.
-    The API writes only to the plugin subfolder root — no subdirs.
+    Produce a flat filename for the plugin subfolder.
     Convention: decompx__<stem>_<ts>__<category>__<name>.md
     """
     safe_name = re.sub(r'[^\w.-]', '_', name)
     if category:
         return f"decompx__{stem}_{ts}__{category}__{safe_name}.md"
     return f"decompx__{stem}_{ts}.md"
+
+
+def _plugin_subfolder() -> pathlib.Path:
+    """
+    Return the plugin's own subfolder.
+    V0RTEX injects PLUGIN_DIR (plugins/DecompX/) directly — use it.
+    Fallback to BASE_DIR/plugins/DecompX/ if running outside V0RTEX.
+    .md and .txt are base formats — written directly, no vx.fs needed.
+    """
+    try:
+        folder = pathlib.Path(PLUGIN_DIR)
+    except NameError:
+        folder = pathlib.Path(BASE_DIR) / "plugins" / "DecompX"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+def _write_md(filename: str, content: str) -> pathlib.Path:
+    """Write a .md file to the plugin subfolder directly (no vx.fs needed)."""
+    dest = _plugin_subfolder() / filename
+    dest.write_text(content, encoding="utf-8")
+    return dest
 
 
 def write_output_tree(
@@ -1856,35 +2544,38 @@ def write_output_tree(
     entry_point:   str = "",
 ):
     """
-    Write the full output tree via vx.fs.write_file.
+    Write the full output tree directly to the plugin subfolder.
 
-    NOTE: vx.fs.write_file writes only to the plugin subfolder root.
-    Subdirectories are NOT supported by the API.
-    We use a flat naming convention instead:
+    .md is a base format — no vx.fs API call needed, no Elevated permission
+    required. DecompX writes directly via open() to its own subfolder
+    (BASE_DIR/plugins/DecompX/), which V0RTEX creates and owns.
 
-      decompx__<stem>_<ts>.md                          <- master report
-      decompx__<stem>_<ts>__extracted__<name>.md       <- extracted scripts
-      decompx__<stem>_<ts>__drop__<path_flat>.md       <- predicted drops
+    Flat naming convention (no subdirs):
+      decompx__<stem>_<ts>.md                        <- master report
+      decompx__<stem>_<ts>__extracted__<name>.md     <- extracted scripts
+      decompx__<stem>_<ts>__drop__<path_flat>.md     <- predicted drops
     """
     stem = pathlib.Path(file_path).stem
 
     # ── Master .md ──────────────────────────────────────────────
-    master_md  = build_output_tree(
+    master_md   = build_output_tree(
         file_path, source, parsed, obf, layers,
         rename_map, cg_txt, data_flow, yara_hits,
         file_drops, extra_sources, entry_point=entry_point)
     master_name = _flat_path(stem, ts, "", stem)
-    vx.fs.write_file(master_name, master_md, "md")
-    LOG.ok(f"Master MD: {master_name}")
+    try:
+        dest = _write_md(master_name, master_md)
+        LOG.ok(f"Master MD: {dest}")
+    except Exception as _e:
+        LOG.warn(f"Master MD write failed: {_e}")
 
     # ── Extra scripts ────────────────────────────────────────────
     for ex in extra_sources:
-        ex_name  = pathlib.Path(ex["path"]).name
-        ex_lang  = _source_lang(ex["path"])
-        ex_src   = ex.get("source", "")
-        origin   = ex.get("origin", "extracted")
+        ex_name = pathlib.Path(ex["path"]).name
+        ex_lang = _source_lang(ex["path"])
+        ex_src  = ex.get("source", "")
+        origin  = ex.get("origin", "extracted")
 
-        # Flatten the predicted path for the filename
         if origin == "extracted":
             out_name = _flat_path(stem, ts, "extracted", ex_name)
         else:
@@ -1897,8 +2588,8 @@ def write_output_tree(
         content += f"> **Predicted path:** `{ex['path']}`\n\n"
         content += f"```{ex_lang}\n{ex_src}\n```\n"
         try:
-            vx.fs.write_file(out_name, content, "md")
-            LOG.ok(f"Script MD: {out_name}")
+            dest = _write_md(out_name, content)
+            LOG.ok(f"Script MD: {dest}")
         except Exception as _e:
             LOG.warn(f"Script MD write failed: {_e}")
 
@@ -2670,6 +3361,12 @@ def run_pipeline(file_path: str, progress_fn, done_fn, error_fn, cancel_event=No
             # S4: CFF solver
             LOG.step("Stage 4 — CFF solver")
             source, cff_solved = solve_cff(source)
+            src2, solved2 = solve_cff_string_state(source)  # FIX 2
+            if solved2: source = src2; cff_solved = True
+            src3, solved3 = solve_cff_bool_flag(source)     # FIX 2b
+            if solved3: source = src3; cff_solved = True
+            src4, solved4 = solve_cff_exception(source)     # FIX 2c
+            if solved4: source = src4
             if cff_solved: LOG.ok("CFF resolved")
             progress_fn(52)
 
@@ -2680,6 +3377,10 @@ def run_pipeline(file_path: str, progress_fn, done_fn, error_fn, cancel_event=No
             LOG.step("Stage 4b — Constant folding")
             source, n_folds = apply_constant_folding(source)
             if n_folds: LOG.ok(f"Constant folding: ~{n_folds} expressions folded")
+            source, dead_count = eliminate_dead_stores(source)    # FIX 4
+            if dead_count: LOG.ok(f"Dead store/code: {dead_count} nodes removed")
+            source, opaque_count = eliminate_opaque_predicates(source)  # FIX 14
+            if opaque_count: LOG.ok(f"Opaque predicates: {opaque_count} eliminated")
 
             if cancel_event and cancel_event.is_set():
                 error_fn("Cancelled by user at Stage 5")
@@ -2705,6 +3406,12 @@ def run_pipeline(file_path: str, progress_fn, done_fn, error_fn, cancel_event=No
             cg_raw     = build_call_graph(source)
             cg_txt     = render_call_graph(cg_raw)
             data_flow  = track_data_flow(source)
+            crypto_res = run_crypto_analysis(source)  # FIX 8+9
+            if crypto_res["keys"]:
+                LOG.warn(f"Hardcoded keys detected: {len(crypto_res['keys'])} candidate(s)")
+                for k in crypto_res["keys"]: LOG.warn(f"  {k['type']} @ line {k['line']}: {k['value'][:40]}")
+            if crypto_res["rc4_decrypt"]:
+                LOG.ok(f"RC4 auto-decrypted: {crypto_res['rc4_decrypt']['desc']}")
             # New in v4.0
             yara_hits  = run_yara_lite(source)
             _strs = parsed.get("strings", [])

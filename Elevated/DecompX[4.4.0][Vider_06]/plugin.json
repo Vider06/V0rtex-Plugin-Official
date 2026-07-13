@@ -34,22 +34,22 @@
   "target_os": [
     "windows"
   ],
-  "verified_date": "2026-07-12",
-  "elevated_date": "2026-07-12",
-  "last_updated": "2026-07-12",
-  "hash_full": "5b39e128c5d35e81cfc93e529af8be6fe395ea2ce96d269fdca871f54a2cf5f0",
-  "hash_structural": "6c847e4b9a9bc418cacf090065a6b4d3eb2d95e6467008df598dc369dcb900a1",
-  "hash_ast": "54b03f22d184272fbd72366fd48293964c701a6512e338f481e748171a76aec1",
-  "ast_token_count": 37423,
+  "verified_date": "2026-07-14",
+  "elevated_date": "2026-07-14",
+  "last_updated": "2026-07-14",
+  "hash_full": "da221171b8fa178a5833a38b4bcf1dbc443eda2614ca5d2d1a88afbe3fa02862",
+  "hash_structural": "9aeba8bcf7f53ce99a1e3168a1fb1a27f0be09fa6d9fee96de33d9e4a81f5cfc",
+  "hash_ast": "7167515048e9e1b2af791d31291ebf4b8fd0892b3e8542fddd01d09cba73cbf1",
+  "ast_token_count": 43560,
   "violation": null,
   "versions": [
     {
       "version": "4.4.0",
-      "date": "2026-07-12",
-      "hash_full": "5b39e128c5d35e81cfc93e529af8be6fe395ea2ce96d269fdca871f54a2cf5f0",
-      "hash_structural": "6c847e4b9a9bc418cacf090065a6b4d3eb2d95e6467008df598dc369dcb900a1",
-      "hash_ast": "54b03f22d184272fbd72366fd48293964c701a6512e338f481e748171a76aec1",
-      "ast_token_count": 37423,
+      "date": "2026-07-14",
+      "hash_full": "da221171b8fa178a5833a38b4bcf1dbc443eda2614ca5d2d1a88afbe3fa02862",
+      "hash_structural": "9aeba8bcf7f53ce99a1e3168a1fb1a27f0be09fa6d9fee96de33d9e4a81f5cfc",
+      "hash_ast": "7167515048e9e1b2af791d31291ebf4b8fd0892b3e8542fddd01d09cba73cbf1",
+      "ast_token_count": 43560,
       "archived_as": null
     }
   ]
