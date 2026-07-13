@@ -31,7 +31,7 @@ Include:
 
 ## Response
 
-The D.V.V. will acknowledge the report and assess severity. If confirmed, a fix will be issued as soon as possible. You will be credited in the relevant changelog entry unless you prefer to remain anonymous.
+The S.E.A. will acknowledge the report and assess severity. If confirmed, a fix will be issued as soon as possible. You will be credited in the relevant changelog entry unless you prefer to remain anonymous.
 
 ---
 
